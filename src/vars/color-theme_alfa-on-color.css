@@ -57,4 +57,14 @@
      * Цвет рамки для контролов в фокусе для `alfa-on-color`.
      */
     --color-border-control-focused-alfa-on-color: rgba(255, 255, 255, .9);
+
+    /**
+    * Цвет для разделительных бордеров для `alfa-on-color`.
+    */
+    --color-border-separator-alfa-on-color: rgba(255, 255, 255, .07);
+
+    /**
+    * Цвет для градиента на краях экрана для `alfa-on-color`.
+    */
+    --color-gradient-edge-screen-alfa-on-color: linear-gradient(to top, #222a32, rgba(34, 42, 50, 0));
 }

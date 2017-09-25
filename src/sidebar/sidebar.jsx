@@ -10,6 +10,7 @@ import React from 'react';
 import Type from 'prop-types';
 
 import Icon from '../icon/icon';
+import IconButton from '../icon-button/fantasy';
 import PopupContainerProvider from '../popup-container-provider/popup-container-provider';
 
 import cn from '../cn';
@@ -55,61 +56,110 @@ class Sidebar extends React.Component {
         children: Type.oneOfType([Type.arrayOf(Type.node), Type.node]),
         /** Признак для отрисовки элемента закрытия */
         hasCloser: Type.bool,
+        /** Признак для отрисовки оверлея */
+        hasOverlay: Type.bool,
+        /** Признак для того чтобы всегда показывать бордер в шапке холодильника */
+        alwaysHasBorder: Type.bool,
         /** Признак появления холодильника */
         visible: Type.bool.isRequired,
+        /** Контент в шапке сайтбара */
+        headerContent: Type.node,
         /** Обработчик клика на элемент закрытия */
         onCloserClick: Type.func
     };
 
     static defaultProps = {
+        hasOverlay: true,
+        alwaysHasBorder: false,
         hasCloser: true
     };
 
     state = {
+        hasBorder: false,
         isMobile: false
     };
+
+    sidebarHeader;
+    sidebarContent;
 
     componentDidMount() {
         setBodyClass(this.props.visible);
         window.addEventListener('scroll', this.handleScroll);
+        this.sidebarContent.addEventListener('scroll', this.handleSidebarContentScroll);
     }
 
     componentWillReceiveProps(nextProps) {
         setBodyClass(nextProps.visible);
+        if (nextProps.visible && this.props.hasOverlay) {
+            document.body.classList.add('sidebar-overlay');
+        } else {
+            document.body.classList.remove('sidebar-overlay');
+        }
     }
 
     componentWillUnmount() {
         setBodyClass(false);
+        this.sidebarContent.removeEventListener('scroll', this.handleSidebarContentScroll);
         window.removeEventListener('scroll', this.handleScroll);
     }
 
     render(cn) {
-        const { hasCloser, children, visible } = this.props;
+        const { hasCloser, children, visible, headerContent, hasOverlay } = this.props;
 
         return (
             <PopupContainerProvider className={ cn({ visible }) }>
+                <div
+                    role='button'
+                    tabIndex='-1'
+                    className={ cn('overlay', { visible: visible && hasOverlay }) }
+                    onClick={ this.handleCloserClick }
+                />
                 <Mq
                     query='--small-only'
                     onMatchChange={ this.handleMqMatchChange }
                 />
-                <div id={ this.props.id }>
-                    {
-                        hasCloser &&
-                        <button
-                            className={ cn('closer') }
-                            onClick={ this.handleCloserClick }
-                        >
-                            <Icon
-                                icon='close'
-                                size='xl'
-                            />
-                        </button>
-                    }
-                    <div className={ cn('content') }>
+                <div
+                    className={ cn('inner') }
+                    id={ this.props.id }
+                >
+                    <header
+                        className={ cn('header', { 'has-border': this.props.alwaysHasBorder || this.state.hasBorder }) }
+                        ref={ (sidebarHeader) => { this.sidebarHeader = sidebarHeader; } }
+                    >
+                        {
+                            hasCloser &&
+                            <div className={ cn('closer') }>
+                                <IconButton
+                                    size={ 'm' }
+                                    onClick={ this.handleCloserClick }
+                                >
+                                    <Icon size={ 'm' } icon='close' />
+                                </IconButton>
+                            </div>
+                        }
+                        {
+                            headerContent
+                                ? this.renderHeaderContent(cn)
+                                : null
+                        }
+                    </header>
+                    <div
+                        className={ cn('content') }
+                        ref={ (sidebarContent) => { this.sidebarContent = sidebarContent; } }
+                    >
                         { children }
                     </div>
+                    <footer className={ cn('footer') } />
                 </div>
             </PopupContainerProvider>
+        );
+    }
+
+    renderHeaderContent(cn) {
+        return (
+            <div className={ cn('header-content') }>
+                { this.props.headerContent }
+            </div>
         );
     }
 
@@ -126,6 +176,11 @@ class Sidebar extends React.Component {
             }
             this.props.onCloserClick();
         }
+    }
+
+    @autobind
+    handleSidebarContentScroll() {
+        this.setState({ hasBorder: this.sidebarContent.scrollTop > this.sidebarHeader.offsetHeight });
     }
 
     handleScroll() {
