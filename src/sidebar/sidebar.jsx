@@ -11,7 +11,11 @@ import Type from 'prop-types';
 
 import Icon from '../icon/icon';
 import IconButton from '../icon-button/fantasy';
+import RenderInContainer from '../render-in-container';
 import PopupContainerProvider from '../popup-container-provider/popup-container-provider';
+
+import keyboardCode from '../lib/keyboard-code';
+import { isEventOutsideClientBounds } from '../lib/window';
 
 import cn from '../cn';
 import Mq from '../mq';
@@ -70,8 +74,10 @@ class Sidebar extends React.Component {
 
     static defaultProps = {
         hasOverlay: true,
+        overlayClassName: '',
         alwaysHasBorder: false,
-        hasCloser: true
+        hasCloser: true,
+        autoclosable: true
     };
 
     state = {
@@ -84,7 +90,9 @@ class Sidebar extends React.Component {
 
     componentDidMount() {
         setBodyClass(this.props.visible);
+        window.addEventListener('keydown', this.handleKeyDown);
         window.addEventListener('scroll', this.handleScroll);
+        window.addEventListener('click', this.handleWindowClick);
         this.sidebarContent.addEventListener('scroll', this.handleSidebarContentScroll);
     }
 
@@ -100,58 +108,61 @@ class Sidebar extends React.Component {
     componentWillUnmount() {
         setBodyClass(false);
         this.sidebarContent.removeEventListener('scroll', this.handleSidebarContentScroll);
+        window.removeEventListener('keydown', this.handleKeyDown);
         window.removeEventListener('scroll', this.handleScroll);
+        window.removeEventListener('click', this.handleWindowClick);
     }
 
     render(cn) {
         const { hasCloser, children, visible, headerContent, hasOverlay } = this.props;
 
         return (
-            <PopupContainerProvider className={ cn({ visible }) }>
-                <div
-                    role='button'
-                    tabIndex='-1'
-                    className={ cn('overlay', { visible: visible && hasOverlay }) }
-                    onClick={ this.handleCloserClick }
-                />
-                <Mq
-                    query='--small-only'
-                    onMatchChange={ this.handleMqMatchChange }
-                />
-                <div
-                    className={ cn('inner') }
-                    id={ this.props.id }
-                >
-                    <header
-                        className={ cn('header', { 'has-border': this.props.alwaysHasBorder || this.state.hasBorder }) }
-                        ref={ (sidebarHeader) => { this.sidebarHeader = sidebarHeader; } }
-                    >
-                        {
-                            hasCloser &&
-                            <div className={ cn('closer') }>
-                                <IconButton
-                                    size={ 'm' }
-                                    onClick={ this.handleCloserClick }
-                                >
-                                    <Icon size={ 'm' } icon='close' />
-                                </IconButton>
-                            </div>
-                        }
-                        {
-                            headerContent
-                                ? this.renderHeaderContent(cn)
-                                : null
-                        }
-                    </header>
+            <RenderInContainer
+                className={ `${cn('overlay', {
+                    visible: this.props.visible,
+                })} ${this.props.overlayClassName}` }
+            >
+                <PopupContainerProvider className={ cn({ visible }) } >
+                    <Mq
+                        query='--small-only'
+                        onMatchChange={ this.handleMqMatchChange }
+                    />
                     <div
-                        className={ cn('content') }
-                        ref={ (sidebarContent) => { this.sidebarContent = sidebarContent; } }
+                        ref={ (elem) => { this.innerDomElement = elem; } }
+                        className={ cn('inner') }
+                        id={ this.props.id }
                     >
-                        { children }
+                        <header
+                            className={ cn('header', { 'has-border': this.props.alwaysHasBorder || this.state.hasBorder }) }
+                            ref={ (sidebarHeader) => { this.sidebarHeader = sidebarHeader; } }
+                        >
+                            {
+                                hasCloser &&
+                                <div className={ cn('closer') }>
+                                    <IconButton
+                                        size={ 'm' }
+                                        onClick={ this.handleClose }
+                                    >
+                                        <Icon size={ 'm' } icon='close' />
+                                    </IconButton>
+                                </div>
+                            }
+                            {
+                                headerContent
+                                    ? this.renderHeaderContent(cn)
+                                    : null
+                            }
+                        </header>
+                        <div
+                            className={ cn('content') }
+                            ref={ (sidebarContent) => { this.sidebarContent = sidebarContent; } }
+                        >
+                            { children }
+                        </div>
+                        <footer className={ cn('footer') } />
                     </div>
-                    <footer className={ cn('footer') } />
-                </div>
-            </PopupContainerProvider>
+                </PopupContainerProvider>
+            </RenderInContainer>
         );
     }
 
@@ -169,12 +180,22 @@ class Sidebar extends React.Component {
     }
 
     @autobind
-    handleCloserClick() {
+    handleClose() {
         if (this.props.onCloserClick) {
             if (this.state.isMobile) {
                 document.body.scrollTop = savedScrollPosition;
             }
             this.props.onCloserClick();
+        }
+    }
+
+    @autobind
+    handleKeyDown(event) {
+        switch (event.which) {
+            case keyboardCode.ESCAPE:
+                event.preventDefault();
+                this.handleClose();
+                break;
         }
     }
 
@@ -186,6 +207,14 @@ class Sidebar extends React.Component {
     handleScroll() {
         if (document.body.scrollTop !== 0) {
             savedScrollPosition = document.body.scrollTop;
+        }
+    }
+
+    @autobind
+    handleWindowClick(event) {
+        console.log(isEventOutsideClientBounds(event, this.innerDomElement));
+        if (this.props.autoclosable && isEventOutsideClientBounds(event, this.innerDomElement)) {
+            this.handleClose();
         }
     }
 }

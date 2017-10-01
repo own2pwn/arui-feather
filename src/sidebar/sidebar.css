@@ -34,7 +34,7 @@ body.sidebar-overlay {
     padding: 0;
 
     transform: translateX(100%);
-    transition: transform .35s cubic-bezier(0.215, 0.61, 0.355, 1);
+    transition: transform .45s ease-in-out;
 
     &, *, *:before, *:after {
         box-sizing: border-box;
@@ -49,12 +49,12 @@ body.sidebar-overlay {
     }
 
     &__overlay {
-        position: absolute;
+        position: fixed;
         top: 0;
-        left: -100vw;
+        left: 0;
 
-        width: 100vw;
-        height: 200vw;
+        width: 100%;
+        height: 100%;
 
         outline: none;
         border: none;
@@ -63,7 +63,7 @@ body.sidebar-overlay {
 
         visibility: hidden;
 
-        transition: all .35s ease-in-out;
+        transition: all .45s ease-in-out;
         cursor: pointer;
 
         &_visible {
@@ -75,6 +75,7 @@ body.sidebar-overlay {
     &__inner {
         display: flex;
         flex-direction: column;
+        height: 100%;
 
         padding: var(--sidebar-padding) 0 var(--sidebar-padding) var(--sidebar-padding);
         padding-right: calc(var(--sidebar-padding) + var(--sidebar-shift));
